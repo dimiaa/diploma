@@ -1,0 +1,6 @@
+# created by virtualenv automatically
+/Lib
+/Scripts
+data.py
+pyvenv.cfg
+file.xlsx
