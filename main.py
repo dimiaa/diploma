@@ -1,122 +1,95 @@
-import numpy
-# import xarray
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib import rc
-from matplotlib import animation
-from openpyxl import Workbook
-import pandas as pd
-
+import LinearRegression
+import Perceptron
+import RangomForest
 import karaushev3d
-# from PySide6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton
-#
-# class MainWindow(QMainWindow):
-#     def __init__(self):
-#         super().__init__()
-#
-#         self.setWindowTitle("Расчет разбавления сточных вод")
-#
-#         button = QPushButton("Press Me!")
-#
-#
-#         self.setCentralWidget(button)
-#
-#
-# def start_application():
-#     app = QApplication()
-#     window = MainWindow()
-#     window.show()
-#     app.exec()
-
-
-# def animate(i):
-#     print("animation running...")
-#     x, step = 0, 0
-#     while x < distance:
-#         arr, _x = t.calculate_iteration(x, step)
-#         im, cbar = t.heatmap(arr, [], [], ax=ax,
-#                            cmap="YlGn", cbarlabel="Концентрация вещества")
-#         texts = t.annotate_heatmap(im, valfmt="{x:.1f}")
-#         txt_title.set_text('Тепловая карта: x = {0:4d} step={0:4d}')
-#         x += _x
-#         step += 1
-#         fig.clear()
-
-
+import numpy
+from utils import XLSXHelper, HeatmapPlotter, GraphPlotter
+from LinearRegression import LinReg
+from RangomForest import RandomForest
+from Perceptron import model, predict
+from sklearn.model_selection import train_test_split
 
 if __name__ == "__main__":
-    book = Workbook()
-    sheet = book.active
+    data = XLSXHelper.read_excel("dataset.xlsx")
 
-    t = karaushev3d.Karaushev3d(224.7, 25.3, 2.44, 100, 0, 6.4, 16, 50.7,150)
-    start_arr, dx = t.pre_calculate()
+    d = data.copy()
+    cols = [0, 11]
+    d.drop(d.columns[cols], axis=1, inplace=True)
 
-    sheet['A1'] = f"Kарта распространения вещества: x = 0, step = 0, deltaZ = deltaY = {round(t.deltaZ, 2)}"
+    X = d.copy()
+    X.drop(X.columns[9], axis=1, inplace=True)
+    Y = d.copy()
+    cols = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    Y.drop(Y.columns[cols], axis=1, inplace=True)
 
-    arr_list = start_arr.tolist()
+    x_train, x_test, y_train, y_test = train_test_split(X.values, Y.values, train_size=40)
+    y_train = y_train.reshape(40, 1)
+    # print(x_train)
+    # y_train = y_train.T
+    # print(y_train)
+    # y_test = y_test.T
 
-    row_count = 1
-    for row in arr_list:
-        sheet.append(row)
-        row_count += 1
+    lr = LinearRegression.LinReg()
+    lr.fit(x_train, y_train)
 
-    # df = pd.DataFrame(start_arr)
-    # df.to_excel('file.xlsx', index=False, header=False)
+    for i in range(1, 40):
 
-    fig, ax = plt.subplots()
-    plt.xlabel("Ось y")
-    plt.ylabel("Ось z")
-    xticklabels = []
-    yticklabels = []
+        t = karaushev3d.Karaushev3d(d.values[i][0], d.values[i][1], d.values[i][2], d.values[i][3], d.values[i][4],
+                                    d.values[i][5], d.values[i][6], d.values[i][7], d.values[i][8])
 
-    i = 0
-    labels = 0
-    delta = t.deltaZ
-    while i < t.countZ:
-        yticklabels.append(labels)
-        labels += delta
-        labels = round(labels, 2)
-        i += 1
+        start_arr, dx = t.pre_calculate()
+        # rc = XLSXHelper.write_excel("output.xlsx", start_arr.tolist(), 0, 0, t.deltaZ)
+        length = 0
+        x, step = 0.0, 0
+        # xticklabels = HeatmapPlotter.gen_xticklabels(t.countX, t.deltaX)
+        # ticklabels = HeatmapPlotter.gen_yticklabels(t.deltaZ, t.countZ)
 
-    i = 0
-    labels = 0
-    while i < t.countX:
-        xticklabels.append(labels)
-        labels += delta
-        labels = round(labels, 2)
-        i += 1
+        # HeatmapPlotter.heatmap(start_arr, yticklabels, xticklabels, step, cmap="Purples", cbarlabel="Концентрация вещества")
 
-    txt_title = ax.set_title(f'Kарта распространения вещества: x = 0, step = 0\n'
-                             f'deltaZ = deltaY = {round(t.deltaZ, 2)}')
-    im, cbar = t.heatmap(start_arr, yticklabels, xticklabels, ax=ax,
-                         cmap="Purples", cbarlabel="Концентрация вещества")
-    texts = t.annotate_heatmap(im, valfmt="{x:.1f}")
-    fig.tight_layout()
-    plt.show()
-    plt.clf()
-    x, step = dx, 1
-    row_count += 1
-    while x < t.length + t.deltaX:
-        tmp_x, tmp_step = x, step
-        arr, x, step = t.calculate_iteration(x, step)
+        while x < t.length + dx:
+            tmp_x, tmp_step = x, step
+            arr, x, step = t.calculate_iteration(x, step)
+            # rc = XLSXHelper.write_excel("output.xlsx", arr.tolist(), x, step, t.deltaZ, rc)
+            # HeatmapPlotter.heatmap(arr, yticklabels, xticklabels, step, cmap="Purples", cbarlabel="Концентрация вещества")
 
-        sheet.cell(row=row_count, column=1).value = f'x = {tmp_x:.2f}, step = {tmp_step}'
-        row_count += 1
-        arr_list = arr.tolist()
+        print(f"i={i} Полученное методом Караушева значение = {t.arr[0][0]}")
+        testX = [[d.values[i][0], d.values[i][1], d.values[i][2], d.values[i][3], d.values[i][4],
+                d.values[i][5], d.values[i][6], d.values[i][7], d.values[i][8]]]
+        print(f"i{i} Полученной с помощью регрессии = {lr.predict(testX)}")
 
-        for row in arr_list:
-            sheet.append(row)
-            row_count += 1
 
-        fig, ax = plt.subplots()
-        plt.xlabel("Ось y")
-        plt.ylabel("Ось z")
-        txt_title = ax.set_title(f'Kарта распространения вещества: x = {tmp_x:.2f}, step = {tmp_step}')
-        im, cbar = t.heatmap(arr, yticklabels, xticklabels, ax=ax,
-                           cmap="Purples", cbarlabel="Концентрация вещества")
-        texts = t.annotate_heatmap(im, valfmt="{x:.1f}")
-        fig.tight_layout()
-        plt.show()
-        plt.clf()
 
-    book.save('file.xlsx')
+
+
+    #
+    # regr = RangomForest.RandomForest()
+    # regr.fit(x_train, y_train)
+    # # p = Perceptron.model(x_train, y_train)
+    #
+    # k = karaushev3d.Karaushev3d(224.7, 25.3, 2.44, 100, 0, 6.4, 16, 50.7, 150)
+    # # k = karaushev3d.Karaushev3d(27.72, 3.28, 3.40, 326.00, 0.01, 3.20, 50.00, 2.16, 168.00)
+    # plot_x = []
+    # plot_y = []
+    # start_arr, dx = k.pre_calculate()
+    # plot_x.append(0)
+    # plot_y.append(start_arr[0][0])
+    # x, step = 0.0, 0
+    # while x < k.length + dx:
+    #     tmp_x, tmp_step = x, step
+    #     arr, x, step = k.calculate_iteration(x, step)
+    #     plot_x.append(x)
+    #     plot_y.append(arr[0][0])
+    #
+    # gr = GraphPlotter.GraphPlotter(plot_x, plot_y)
+    # gr.plot()
+    #
+    #
+    # # testX = [[224.7, 25.3, 2.44, 100, 0, 6.4, 16, 50.7, 150]]
+    # testX = [[27.72, 3.28, 3.40, 326.00, 0.01, 3.20, 50.00, 2.16, 168.00]]
+    # print(f"Linear Reg predict = {lr.predict(x_pred=testX)}")
+    # # print(f"Perceptron predict = {p.predict(testX)}")
+    # print(f"Rangom Forest Regression = {regr.predict(x_pred=testX)}")
+    # print(f"Karaushev predict = {k.arr[0][0]}")
+    #
+    # testLinReg = LinReg.predict(X)
+    # print(testLinReg)
