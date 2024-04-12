@@ -3,8 +3,8 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'python -m py_compile main.py'
-                stash(name: 'compiled-results')
+                sh 'python -m py_compile sources/karaushev3d.py sources/main.py'
+                stash(name: 'compiled-results', includes: 'sources/*.py*')
             }
         }
     }

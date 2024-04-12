@@ -1,16 +1,9 @@
-import LinearRegression
-import Perceptron
-import RangomForest
-import karaushev3d
-import numpy
-from utils import XLSXHelper, HeatmapPlotter, GraphPlotter
-from LinearRegression import LinReg
-from RangomForest import RandomForest
-from Perceptron import model, predict
+from sources import karaushev3d, LinearRegression
+from utils import XLSXHelper
 from sklearn.model_selection import train_test_split
 
 if __name__ == "__main__":
-    data = XLSXHelper.read_excel("dataset.xlsx")
+    data = XLSXHelper.read_excel("../dataset.xlsx")
 
     d = data.copy()
     cols = [0, 11]
