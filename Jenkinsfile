@@ -1,20 +1,43 @@
 pipeline {
     agent any
     environment {
-        PATH = "/usr/bin/python3"
+        registry = "dimiaa/app"
+        registryCredential = 'd1ef640a72b246dc89f84c39ca057487'
+        dockerImage = ''
     }
     stages {
-        stage('Checkout') {
+        stage('Git checkout') {
             steps {
                 git branch: 'master',
                 url: 'https://github.com/dimiaa/diploma.git'
             }
         }
-        stage('Build') {
+        stage('Build Docker Image'){
             steps {
-                sh 'python3 --version'
-                sh 'pip install -r requirements.txt'
-                sh 'pyinstaller --onefile sources/karaushev3d.py sources/main.py sources/LinearRegression.py'
+                 script {
+                    dockerImage = docker.build registry
+                 }
+            }
+        }
+        stage('Upload Image') {
+            steps {
+                script {
+                    docker.withRegistry('', registryCredential)
+                    dockerImage.push()
+                }
+            }
+        }
+        stage('Docker stop container') {
+            steps {
+                sh 'docker ps -f name=app -q | xargs --no-run-if-empty docker container stop'
+                sh 'docker container ls -a -fname=app -q | xargs -r docker container rm'
+            }
+        }
+        stage('Docker run'){
+            steps {
+                script {
+                    dockerImage.rin("-p 6000:6000 --rm --name app")
+                }
             }
         }
     }
