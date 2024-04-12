@@ -12,11 +12,6 @@ pipeline {
         }
         stage('Build') {
             steps {
-                script {
-                    tools {
-                        python 'python3'
-                    }
-                }
                 sh 'python3 --version'
                 sh 'pip install -r requirements.txt'
                 sh 'python3 sources/karaushev3d.py build sources/main.py build sources/LinearRegression.py build'
