@@ -2,7 +2,7 @@ pipeline {
     agent any
     environment {
         registry = "dimiaa/app"
-        registryCredential = 'd1ef640a72b246dc89f84c39ca057487'
+        registryCredential = '7fd88827-0fec-4a11-b4bc-efde01eb1d9e'
         dockerImage = ''
     }
     stages {
